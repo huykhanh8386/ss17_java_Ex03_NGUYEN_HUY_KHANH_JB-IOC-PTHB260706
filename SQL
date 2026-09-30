@@ -1,0 +1,92 @@
+create database rikkei_erp_db;
+create table customers(
+    id serial primary key,
+    name varchar(100) not null,
+    email varchar(100) unique not null,
+    loyalty_points int default 0,
+    is_active boolean default true
+);
+insert into customers(name, email, loyalty_points, is_active)
+values ('Phạm Minh Đức', 'duc.pham@rikkei.edu.vn', 200, TRUE),
+       ('Nguyễn Văn An', 'an.nguyen@rikkei.edu.vn', 500, TRUE),
+       ('Trần Khánh Vy', 'vy.tran@rikkei.edu.vn', 750, TRUE),
+       ('Lê Trường Giang', 'giang.le@rikkei.edu.vn', 1200, TRUE),
+       ('Hoàng Thu Hà', 'ha.hoang@rikkei.edu.vn', 450, FALSE);
+
+create table bank_accounts (
+     account_number VARCHAR(20) PRIMARY KEY,
+     account_holder VARCHAR(100) NOT NULL,
+     balance NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
+     account_type VARCHAR(20) NOT NULL,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+create table products (
+    product_id SERIAL PRIMARY KEY,
+    product_code VARCHAR(20) UNIQUE NOT NULL,
+    product_name VARCHAR(150) NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    price NUMERIC(12, 2) NOT NULL,
+    stock_quantity INT NOT NULL DEFAULT 0,
+    status VARCHAR(30) NOT NULL
+);
+INSERT INTO products(product_code, product_name, category, price, stock_quantity, status)
+VALUES
+    ('LT01', 'Dell Inspiron', 'LAPTOP', 15000000, 3, 'ACTIVE'),
+    ('LT02', 'Asus Vivobook', 'LAPTOP', 17000000, 5, 'ACTIVE'),
+    ('LT03', 'HP Pavilion', 'LAPTOP', 16000000, 2, 'ACTIVE'),
+    ('LT04', 'Macbook Air', 'LAPTOP', 25000000, 10, 'ACTIVE'),
+    ('MS01', 'Mouse Logitech', 'ACCESSORY', 500000, 0, 'DISCONTINUED'),
+    ('KB01', 'Keyboard DareU', 'ACCESSORY', 700000, 0, 'DISCONTINUED');
+INSERT INTO bank_accounts
+(account_number, account_holder, balance, account_type)
+VALUES
+    ('10100019283', 'NGUYEN VAN QUYET', 5000000, 'SAVING'),
+    ('88889999000', 'TRAN VAN AN', 2000000, 'SAVING')
+
+ON CONFLICT (account_number)
+    DO UPDATE SET
+      account_holder = EXCLUDED.account_holder,
+      balance = EXCLUDED.balance,
+      account_type = EXCLUDED.account_type;
+CREATE TABLE employees (
+     emp_id SERIAL PRIMARY KEY,
+     full_name VARCHAR(100) NOT NULL,
+     salary NUMERIC(15, 2) NOT NULL,
+     performance_rating VARCHAR(10) NOT NULL
+);
+INSERT INTO employees(full_name, salary, performance_rating)
+VALUES
+    ('Nguyễn Hồng Sơn', 30000000, 'A'),
+    ('Trần Văn Nam', 20000000, 'B'),
+    ('Lê Thu Hà', 15000000, 'C');
+CREATE OR REPLACE FUNCTION get_employee_bonus(
+    p_emp_id INT,
+    OUT o_full_name VARCHAR,
+    OUT o_bonus NUMERIC
+)
+    LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_salary NUMERIC;
+    v_rating VARCHAR(10);
+BEGIN
+
+    SELECT full_name, salary, performance_rating
+    INTO o_full_name, v_salary, v_rating
+    FROM employees
+    WHERE emp_id = p_emp_id;
+
+    IF NOT FOUND THEN
+        o_full_name := 'NOT_FOUND';
+        o_bonus := 0;
+        RETURN;
+    END IF;
+    IF v_rating = 'A' THEN
+        o_bonus := v_salary * 1.5;
+    ELSIF v_rating = 'B' THEN
+        o_bonus := v_salary * 1.0;
+    ELSE
+        o_bonus := v_salary * 0.5;
+    END IF;
+END;
+$$;
